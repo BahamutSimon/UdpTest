@@ -32,7 +32,7 @@ struct SUdpPacket
 public:
     SUdpPacket();
     SUdpPacket(uint64_t id, uint32_t seqNumber, uint32_t seqTotal, const std::vector <unsigned char>& datablock, int dataIndex, int dataSize);
-    SUdpPacket(const SUdpPacket& packet, int dataSize, uint8_t type, size_t receivedCount);
+    SUdpPacket(const SUdpPacket& packet, int dataSize, uint8_t type);
     unsigned char* GetData();
 
     uint32_t m_seqNumber;
@@ -70,6 +70,7 @@ private:
     std::vector<SUdpPacketPutInfo> m_packetsMeta;
     std::vector<int> m_packetsToSend;
     std::unordered_set<uint32_t> m_packetsReceived;
+    bool m_bServerCrcReceived = false;
 
     //for packets shuffling
     std::random_device m_rd;

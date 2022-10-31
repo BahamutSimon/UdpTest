@@ -30,10 +30,10 @@ SUdpPacket::SUdpPacket(uint64_t id, uint32_t seqNumber, uint32_t seqTotal, const
 
 }
 
-SUdpPacket::SUdpPacket(const SUdpPacket& packet, int dataSize, uint8_t type,  size_t receivedCount)
+SUdpPacket::SUdpPacket(const SUdpPacket& packet, int dataSize, uint8_t type)
 {
     m_seqNumber = packet.m_seqNumber;
-    m_seqTotal = receivedCount;
+    m_seqTotal = packet.m_seqTotal;
     m_type = type;
     m_id = packet.m_id;
     std::memcpy(&m_data[0], (void*)&packet.m_data[0], dataSize);
@@ -161,6 +161,7 @@ SUdpPacket* CFileData::GetPacketToSend(size_t& outSize)
             if (indexToSend < m_packetsToSend.size() - 1)
                 std::iter_swap(m_packetsToSend.begin() + packetsToSendIndex, m_packetsToSend.begin() + m_packetsToSend.size() - 1);
             m_packetsToSend.pop_back();
+            toSend->m_seqTotal = m_packetsReceived.size();
             if (toSend->m_seqTotal == m_packets.size())
                outSize += sizeof(uint32_t); 
         }
@@ -175,6 +176,9 @@ SUdpPacket* CFileData::GetPacketToSend(size_t& outSize)
 
 void CFileData::OnPacketReceived(SUdpPacket* udpPacket, int size, bool& outComplete)
 {
+    if (m_bServerCrcReceived)
+        return;
+
     outComplete = false;
     std::cout << "Received id: " << m_id << " type: "  << (int)udpPacket->m_type << " num: " << udpPacket->m_seqNumber << " / " << udpPacket->m_seqTotal << std::endl;
     uint32_t seqNumber = udpPacket->m_seqNumber;
@@ -188,7 +192,7 @@ void CFileData::OnPacketReceived(SUdpPacket* udpPacket, int size, bool& outCompl
 
         int dataSize = size - PACKET_HEADER_SIZE;
         m_packetsReceived.insert(seqNumber);
-        m_packets[seqNumber] = std::make_unique<SUdpPacket>(*udpPacket, dataSize, EPacketType::EPT_ACK, m_packetsReceived.size());
+        m_packets[seqNumber] = std::make_unique<SUdpPacket>(*udpPacket, dataSize, EPacketType::EPT_ACK);
         m_packetsMeta[seqNumber].m_dataSize = dataSize;
         m_packetsToSend.push_back(seqNumber);
         if (m_packetsReceived.size() == packetsCount){
@@ -215,7 +219,9 @@ void CFileData::OnPacketReceived(SUdpPacket* udpPacket, int size, bool& outCompl
             uint32_t serverCrc = 0;
             std::memcpy(&serverCrc, &udpPacket->m_data, sizeof(uint32_t));
             std::string crcLog = serverCrc == m_crc ? "Valid" : "ERROR";
-            std::cout << "Received crc from server: " << serverCrc <<" Local crc: "  << m_crc << " " << crcLog <<std::endl;
+            std::cout << "Received crc from server id: " << m_id << " crc: " << serverCrc <<" Local crc: "  << m_crc << " " << crcLog <<std::endl;
+            m_packetsToSend.clear();
+            m_bServerCrcReceived = true;
             outComplete = true;
         }
         

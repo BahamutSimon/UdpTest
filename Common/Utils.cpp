@@ -20,7 +20,7 @@ int64_t CUtils::GetCurTimeMilliseconds()
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();;
 }
 
-int64_t CUtils::GetRandom()
+uint64_t CUtils::GetRandom()
 {
     std::random_device rd;
     std::mt19937_64 eng(rd());
