@@ -9,7 +9,7 @@ class CUdpSocketBase
 {
 public:
     CUdpSocketBase();
-    ~CUdpSocketBase();
+    virtual ~CUdpSocketBase();
 
     virtual void Init(const std::string& addr, int port);
     int Send(void* msg, size_t size);
